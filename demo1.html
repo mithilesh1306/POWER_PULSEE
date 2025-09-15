@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eco-Grid Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-color: #161b22;
+            --border-color: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent-green: #238636;
+            --accent-yellow: #d29922;
+            --accent-blue: #388bfd;
+            --accent-orange: #f9822c;
+            --accent-red: #da3633;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            gap: 24px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin: 0;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .metrics-grid, .main-grid, .charts-grid {
+            display: grid;
+            gap: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+        
+        .charts-grid {
+             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        }
+
+
+        .card {
+            background-color: var(--card-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: var(--text-primary);
+        }
+
+        .metric-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .metric-card .icon {
+            font-size: 2rem;
+        }
+
+        .metric-card .icon-green { color: var(--accent-green); }
+        .metric-card .icon-yellow { color: var(--accent-yellow); }
+        .metric-card .icon-blue { color: var(--accent-blue); }
+        .metric-card .icon-orange { color: var(--accent-orange); }
+
+        .metric-card .value {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin: 0.5rem 0 0 0;
+        }
+
+        .metric-card .label {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .insights-bar {
+            border-radius: 6px;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 5px solid var(--accent-blue);
+            background-color: rgba(56, 139, 253, 0.1);
+            transition: all 0.3s ease;
+        }
+        .insights-bar.status-ok { border-color: var(--accent-green); background-color: rgba(35, 134, 54, 0.1); }
+        .insights-bar.status-warning { border-color: var(--accent-yellow); background-color: rgba(210, 153, 34, 0.1); }
+        .insights-bar.status-critical { border-color: var(--accent-red); background-color: rgba(218, 54, 51, 0.1); }
+
+        .performance-grid {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 20px;
+            text-align: center;
+        }
+
+        .efficiency-gauge {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(closest-side, var(--card-color) 79%, transparent 80% 100%),
+                        conic-gradient(var(--accent-green) 0%, var(--accent-yellow) 50%, var(--accent-red) 100%);
+        }
+        .efficiency-score-text { font-size: 2rem; font-weight: bold; }
+        .efficiency-label { font-size: 0.8rem; color: var(--text-secondary); margin-top: -5px;}
+        .savings-metric .value { font-size: 1.5rem; font-weight: 600; color: var(--accent-green); }
+        .savings-metric .label { font-size: 0.9rem; color: var(--text-secondary); }
+
+        .load-management h4 {
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .device {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--bg-color);
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .master-control {
+            border: 1px solid var(--accent-red);
+            background-color: rgba(218, 54, 51, 0.1);
+        }
+
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--text-secondary); transition: .4s; border-radius: 26px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked+.slider { background-color: var(--accent-green); }
+        input:checked+.slider:before { transform: translateX(24px); }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <header class="header">
+            <h1>Eco-Grid Dashboard</h1>
+            <p>Community Microgrid Management & Optimization</p>
+        </header>
+
+        <div class="metrics-grid">
+            <div class="card metric-card">
+                 <div>
+                    <div class="label">Energy Generated</div>
+                    <p class="value" id="energy-generated">11.4 kW</p>
+                </div>
+                <div class="icon icon-green">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" /></svg>
+                </div>
+            </div>
+            <div class="card metric-card">
+                <div>
+                    <div class="label">Battery Storage</div>
+                    <p class="value" id="energy-stored">100%</p>
+                </div>
+                <div class="icon icon-yellow">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.19M15 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3.19M23 13v-2M1 11v2m11-1a2 2 0 0 0-2-2h-1a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2z" /></svg>
+                </div>
+            </div>
+            <div class="card metric-card">
+                 <div>
+                    <div class="label">Live Consumption</div>
+                    <p class="value" id="calculated-power">--- kW</p>
+                </div>
+                <div class="icon icon-blue">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5M9 17H7A5 5 0 0 1 7 7h10a5 5 0 0 1 0 10h-2M15 17h-3v-5h3v5Z" /></svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="card">
+                <h3>Actionable Insights & Alerts</h3>
+                <div class="insights-bar" id="insights-bar">
+                    <div id="insights-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </div>
+                    <span id="insights-text">System running normally. No alerts.</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Grid Performance & Savings</h3>
+                <div class="performance-grid">
+                    <div class="efficiency-gauge" id="efficiency-gauge">
+                        <div>
+                            <div class="efficiency-score-text" id="efficiency-score">100</div>
+                            <div class="efficiency-label">%</div>
+                        </div>
+                    </div>
+                    <div class="savings-metric">
+                        <div class="value" id="cost-saved">₹0.00</div>
+                        <div class="label">Est. Savings Today</div>
+                    </div>
+                    <div class="savings-metric">
+                        <div class="value" id="co2-avoided">0.0 kg</div>
+                        <div class="label">CO₂ Emissions Avoided</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="card">
+                <h3>Real-Time Power Consumption</h3>
+                <div style="height:350px;"> <canvas id="power-chart"></canvas> </div>
+            </div>
+            <div class="card">
+                <h3>Weekly Solar Generation</h3>
+                <div style="height:350px;"> <canvas id="solar-chart"></canvas> </div>
+            </div>
+             <div class="card">
+                <h3>Weekly Consumption</h3>
+                <div style="height:350px;"> <canvas id="consumption-chart"></canvas> </div>
+            </div>
+            <div class="card">
+                <h3>Weekly Cost</h3>
+                <div style="height:350px;"> <canvas id="cost-chart"></canvas> </div>
+            </div>
+        </div>
+        
+        <div class="card load-management">
+            <h3>Load Management</h3>
+            <div class="device master-control">
+                <span>Conserve Power (Turn off Non-Essentials)</span>
+                <label class="switch">
+                    <input type="checkbox" id="masterToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <h4>Critical Loads</h4>
+            <div class="device-grid">
+                <div class="device">
+                    <span>Street Lights</span>
+                    <label class="switch"> <input type="checkbox" id="ledToggle"> <span class="slider"></span> </label>
+                </div>
+                <div class="device">
+                    <span>Water Pump</span>
+                    <label class="switch"> <input type="checkbox" id="portToggle"> <span class="slider"></span> </label>
+                </div>
+            </div>
+            <h4>Non-Essential Loads</h4>
+            <div class="device-grid">
+                <div class="device">
+                    <span>Fan (Community Hall)</span>
+                    <label class="switch"> <input type="checkbox" id="fanToggle" class="non-essential-toggle" data-path="FAN_STATUS"> <span class="slider"></span> </label>
+                </div>
+                <div class="device">
+                    <span>Smart Board</span>
+                    <label class="switch"> <input type="checkbox" id="boardToggle" class="non-essential-toggle" data-path="SMART_BOARD_STATUS"> <span class="slider"></span> </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDK2t0oMloB7t3zFt84voANXxgvnS8YadM",
+            authDomain: "test-001-c3444.firebaseapp.com",
+            databaseURL: "https://test-001-c3444-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "test-001-c3444",
+            storageBucket: "test-001-c3444.appspot.com",
+            messagingSenderId: "885640728034",
+            appId: "1:885640728034:web:52d3e85484db18d90a3dbb",
+            measurementId: "G-5LM1YQ7LF0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // --- CONFIG & STATE (Original) ---
+        const VOLTAGE = 230;
+        const GENERATION_POWER_WATTS = 11.4 * 1000;
+        const ELECTRICITY_TARIFF_INR = 5.70;
+        const CO2_EMISSIONS_FACTOR_KG = 0.7;
+
+        let totalKwhGeneratedToday = 0;
+        let lastUpdateTime = Date.now();
+        let mockBatteryPercentage = 100;
+
+        // --- DOM ELEMENTS (Original and New) ---
+        const energyGeneratedValueElement = document.getElementById('energy-generated');
+        const powerValueElement = document.getElementById("calculated-power");
+        const chartCtx = document.getElementById('power-chart').getContext('2d');
+        const insightsBar = document.getElementById('insights-bar');
+        const insightsText = document.getElementById('insights-text');
+        const efficiencyGauge = document.getElementById('efficiency-gauge');
+        const efficiencyScoreText = document.getElementById('efficiency-score');
+        const costSavedElement = document.getElementById('cost-saved');
+        const co2AvoidedElement = document.getElementById('co2-avoided');
+        
+        // New canvases for dummy charts
+        const solarCtx = document.getElementById('solar-chart').getContext('2d');
+        const consumptionCtx = document.getElementById('consumption-chart').getContext('2d');
+        const costCtx = document.getElementById('cost-chart').getContext('2d');
+
+
+        // --- CHART SETUP (Original) ---
+        const powerChart = new Chart(chartCtx, {
+            type: 'line', data: { labels: [], datasets: [{ label: 'Consumption (W)', data: [], borderColor: 'var(--accent-blue)', backgroundColor: 'rgba(56, 139, 253, 0.2)', borderWidth: 2, tension: 0.3, fill: true }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } }, x: { ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } } }, plugins: { legend: { labels: { color: 'var(--text-primary)' } } } }
+        });
+        function addDataToChart(chart, label, data) {
+            chart.data.labels.push(label); chart.data.datasets[0].data.push(data);
+            if (chart.data.labels.length > 30) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
+            chart.update();
+        }
+
+        // --- DUMMY CHART SETUP ---
+        const dummyLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        
+        // Dummy Solar Chart
+        new Chart(solarCtx, {
+            type: 'line',
+            data: {
+                labels: dummyLabels,
+                datasets: [{
+                    label: 'Solar Generation (kWh)',
+                    data: [15, 18, 22, 19, 25, 23, 28],
+                    borderColor: 'var(--accent-green)',
+                    backgroundColor: 'rgba(35, 134, 54, 0.2)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } }, x: { ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } } }, plugins: { legend: { labels: { color: 'var(--text-primary)' } } } }
+        });
+
+        // Dummy Consumption Chart
+        new Chart(consumptionCtx, {
+            type: 'line',
+            data: {
+                labels: dummyLabels,
+                datasets: [{
+                    label: 'Electricity Consumed (kWh)',
+                    data: [20, 22, 25, 24, 28, 27, 30],
+                    borderColor: 'var(--accent-blue)',
+                    backgroundColor: 'rgba(56, 139, 253, 0.2)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } }, x: { ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } } }, plugins: { legend: { labels: { color: 'var(--text-primary)' } } } }
+        });
+        
+        // Dummy Cost Chart
+        new Chart(costCtx, {
+            type: 'bar',
+            data: {
+                labels: dummyLabels,
+                datasets: [{
+                    label: 'Daily Cost (₹)',
+                    data: [114, 125, 142, 136, 160, 154, 171],
+                    backgroundColor: 'rgba(210, 153, 34, 0.6)',
+                    borderColor: 'var(--accent-yellow)',
+                    borderWidth: 1
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } }, x: { ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } } }, plugins: { legend: { labels: { color: 'var(--text-primary)' } } } }
+        });
+
+
+        // --- CORE LOGIC FUNCTIONS (Original) ---
+        function updatePerformanceMetrics(consumption, battery) {
+            let score = 100;
+            if (consumption > GENERATION_POWER_WATTS && battery < 50) score -= 25;
+            if (consumption > 15000) score -= 15;
+            score = Math.max(0, score);
+            
+            efficiencyScoreText.innerText = score;
+            const hue = score * 1.2;
+            efficiencyGauge.style.background = `radial-gradient(closest-side, var(--card-color) 79%, transparent 80% 100%), conic-gradient(hsl(${hue}, 80%, 50%) ${score}%, var(--border-color) 0)`;
+        }
+
+        function updateActionableInsights(consumption, battery) {
+            if (consumption > GENERATION_POWER_WATTS && battery < 30) {
+                insightsBar.className = 'insights-bar status-critical';
+                insightsText.innerText = "CRITICAL: Battery is low. Turn off non-essential loads immediately!";
+            } else if (consumption > GENERATION_POWER_WATTS) {
+                insightsBar.className = 'insights-bar status-warning';
+                insightsText.innerText = "WARNING: Consumption exceeds generation. Running on battery backup.";
+            } else if (GENERATION_POWER_WATTS > consumption && battery === 100) {
+                insightsBar.className = 'insights-bar status-ok';
+                insightsText.innerText = "INFO: Energy surplus detected. Good time for high-power tasks.";
+            } else {
+                insightsBar.className = 'insights-bar';
+                insightsText.innerText = "System running normally. All parameters are stable.";
+            }
+        }
+
+        // --- FIREBASE LISTENERS (Original) ---
+        const currentRef = ref(db, "CURRENT_DATA");
+        onValue(currentRef, (snapshot) => {
+            const current = parseFloat(snapshot.val()) || 0;
+            const consumptionPower = VOLTAGE * current;
+
+            energyGeneratedValueElement.innerText = `${current.toFixed(2)} A`;
+            powerValueElement.innerText = `${(consumptionPower / 1000).toFixed(2)} kW`;
+            addDataToChart(powerChart, new Date().toLocaleTimeString(), consumptionPower);
+
+            const now = Date.now();
+            const timeDeltaHours = (now - lastUpdateTime) / (1000 * 60 * 60);
+            totalKwhGeneratedToday += (GENERATION_POWER_WATTS * timeDeltaHours);
+            lastUpdateTime = now;
+
+            costSavedElement.innerText = `₹${(totalKwhGeneratedToday / 1000 * ELECTRICITY_TARIFF_INR).toFixed(2)}`;
+            co2AvoidedElement.innerText = `${(totalKwhGeneratedToday / 1000 * CO2_EMISSIONS_FACTOR_KG).toFixed(1)} kg`;
+
+            updatePerformanceMetrics(consumptionPower, mockBatteryPercentage);
+            updateActionableInsights(consumptionPower, mockBatteryPercentage);
+        });
+
+        // --- DEVICE CONTROL SETUP (Original) ---
+        function setupToggle(toggleId, dbPath) {
+            const element = document.getElementById(toggleId);
+            if (!element) return;
+            const dbRef = ref(db, dbPath);
+            onValue(dbRef, (snapshot) => { element.checked = (snapshot.val() === 3); });
+            element.addEventListener("change", function () { set(dbRef, this.checked ? 3 : 0); });
+        }
+        setupToggle("ledToggle", "LED_STATUS");
+        setupToggle("fanToggle", "FAN_STATUS");
+        setupToggle("portToggle", "PORT_STATUS");
+        setupToggle("boardToggle", "SMART_BOARD_STATUS");
+        
+        const masterToggle = document.getElementById('masterToggle');
+        masterToggle.addEventListener('change', function() {
+            const nonEssentialToggles = document.querySelectorAll('.non-essential-toggle');
+            if (this.checked) {
+                nonEssentialToggles.forEach(toggle => {
+                    const dbPath = toggle.getAttribute('data-path');
+                    set(ref(db, dbPath), 0);
+                });
+            }
+        });
+        
+        setInterval(() => {
+            if (mockBatteryPercentage > 0) mockBatteryPercentage -= 0.1;
+            document.getElementById("energy-stored").innerText = `${Math.round(mockBatteryPercentage)}%`;
+        }, 5000);
+    </script>
+</body>
+
+</html>

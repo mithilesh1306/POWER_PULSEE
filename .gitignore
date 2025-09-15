@@ -1,0 +1,8 @@
+# Environment variables
+.env
+
+# Firebase admin key (rename your .json file to this for simplicity)
+firebase-key.json
+
+# Node.js dependencies
+/node_modules
