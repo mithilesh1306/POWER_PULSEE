@@ -72,6 +72,7 @@
             margin-top: 0;
             font-size: 1.2rem;
             color: var(--text-primary);
+            text-align: center;
         }
 
         .metric-card {
@@ -170,6 +171,41 @@
         .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked+.slider { background-color: var(--accent-green); }
         input:checked+.slider:before { transform: translateX(24px); }
+        
+        /* --- MOBILE RESPONSIVE STYLES --- */
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            .dashboard-container {
+                /* Ensures the main container is centered */
+                padding: 0 1rem;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+            .metric-card {
+                /* Center metric card items vertically */
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 1rem;
+            }
+            .metric-card .value {
+                font-size: 2.25rem;
+            }
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            .performance-grid {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            .card {
+                padding: 16px;
+            }
+        }
+
     </style>
 </head>
 
@@ -263,7 +299,7 @@
         <div class="card load-management">
             <h3>Load Management</h3>
             <div class="device master-control">
-                <span>Conserve Power (Turn off Non-Essentials)</span>
+                <span>Turn Off PowerSupply (Turn off Non-Essentials)</span>
                 <label class="switch">
                     <input type="checkbox" id="masterToggle">
                     <span class="slider"></span>
@@ -287,7 +323,7 @@
                     <label class="switch"> <input type="checkbox" id="fanToggle" class="non-essential-toggle" data-path="FAN_STATUS"> <span class="slider"></span> </label>
                 </div>
                 <div class="device">
-                    <span>Smart Board</span>
+                    <span>Solar cleaner</span>
                     <label class="switch"> <input type="checkbox" id="boardToggle" class="non-essential-toggle" data-path="SMART_BOARD_STATUS"> <span class="slider"></span> </label>
                 </div>
             </div>
@@ -312,7 +348,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- CONFIG & STATE (Original) ---
+        // --- CONFIG & STATE ---
         const VOLTAGE = 230;
         const GENERATION_POWER_WATTS = 11.4 * 1000;
         const ELECTRICITY_TARIFF_INR = 5.70;
@@ -322,7 +358,7 @@
         let lastUpdateTime = Date.now();
         let mockBatteryPercentage = 100;
 
-        // --- DOM ELEMENTS (Original and New) ---
+        // --- DOM ELEMENTS ---
         const energyGeneratedValueElement = document.getElementById('energy-generated');
         const powerValueElement = document.getElementById("calculated-power");
         const chartCtx = document.getElementById('power-chart').getContext('2d');
@@ -333,13 +369,7 @@
         const costSavedElement = document.getElementById('cost-saved');
         const co2AvoidedElement = document.getElementById('co2-avoided');
         
-        // New canvases for dummy charts
-        const solarCtx = document.getElementById('solar-chart').getContext('2d');
-        const consumptionCtx = document.getElementById('consumption-chart').getContext('2d');
-        const costCtx = document.getElementById('cost-chart').getContext('2d');
-
-
-        // --- CHART SETUP (Original) ---
+        // --- CHART SETUP ---
         const powerChart = new Chart(chartCtx, {
             type: 'line', data: { labels: [], datasets: [{ label: 'Consumption (W)', data: [], borderColor: 'var(--accent-blue)', backgroundColor: 'rgba(56, 139, 253, 0.2)', borderWidth: 2, tension: 0.3, fill: true }] },
             options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } }, x: { ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } } }, plugins: { legend: { labels: { color: 'var(--text-primary)' } } } }
@@ -350,61 +380,7 @@
             chart.update();
         }
 
-        // --- DUMMY CHART SETUP ---
-        const dummyLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        
-        // Dummy Solar Chart
-        new Chart(solarCtx, {
-            type: 'line',
-            data: {
-                labels: dummyLabels,
-                datasets: [{
-                    label: 'Solar Generation (kWh)',
-                    data: [15, 18, 22, 19, 25, 23, 28],
-                    borderColor: 'var(--accent-green)',
-                    backgroundColor: 'rgba(35, 134, 54, 0.2)',
-                    fill: true,
-                    tension: 0.3
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } }, x: { ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } } }, plugins: { legend: { labels: { color: 'var(--text-primary)' } } } }
-        });
-
-        // Dummy Consumption Chart
-        new Chart(consumptionCtx, {
-            type: 'line',
-            data: {
-                labels: dummyLabels,
-                datasets: [{
-                    label: 'Electricity Consumed (kWh)',
-                    data: [20, 22, 25, 24, 28, 27, 30],
-                    borderColor: 'var(--accent-blue)',
-                    backgroundColor: 'rgba(56, 139, 253, 0.2)',
-                    fill: true,
-                    tension: 0.3
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } }, x: { ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } } }, plugins: { legend: { labels: { color: 'var(--text-primary)' } } } }
-        });
-        
-        // Dummy Cost Chart
-        new Chart(costCtx, {
-            type: 'bar',
-            data: {
-                labels: dummyLabels,
-                datasets: [{
-                    label: 'Daily Cost (₹)',
-                    data: [114, 125, 142, 136, 160, 154, 171],
-                    backgroundColor: 'rgba(210, 153, 34, 0.6)',
-                    borderColor: 'var(--accent-yellow)',
-                    borderWidth: 1
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } }, x: { ticks: { color: 'var(--text-secondary)' }, grid: { color: 'var(--border-color)' } } }, plugins: { legend: { labels: { color: 'var(--text-primary)' } } } }
-        });
-
-
-        // --- CORE LOGIC FUNCTIONS (Original) ---
+        // --- CORE LOGIC FUNCTIONS ---
         function updatePerformanceMetrics(consumption, battery) {
             let score = 100;
             if (consumption > GENERATION_POWER_WATTS && battery < 50) score -= 25;
@@ -432,7 +408,7 @@
             }
         }
 
-        // --- FIREBASE LISTENERS (Original) ---
+        // --- FIREBASE LISTENERS ---
         const currentRef = ref(db, "CURRENT_DATA");
         onValue(currentRef, (snapshot) => {
             const current = parseFloat(snapshot.val()) || 0;
@@ -454,7 +430,7 @@
             updateActionableInsights(consumptionPower, mockBatteryPercentage);
         });
 
-        // --- DEVICE CONTROL SETUP (Original) ---
+        // --- DEVICE CONTROL SETUP ---
         function setupToggle(toggleId, dbPath) {
             const element = document.getElementById(toggleId);
             if (!element) return;
